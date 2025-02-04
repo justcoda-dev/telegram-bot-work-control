@@ -1,0 +1,12 @@
+{
+  "extends": "@parcel/config-default",
+  "targets": {
+    "node": {
+      "context": "node",
+      "outputFormat": "commonjs",
+      "engines": {
+        "node": ">=14"
+      }
+    }
+  }
+}

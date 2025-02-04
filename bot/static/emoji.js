@@ -1,0 +1,17 @@
+export const EMOJI = {
+  SETTINGS: "⚙️",
+  MENU: "📋",
+  HELP: "❓",
+  STATUS_TRUE: "✅",
+  STATUS_FALSE: "❌",
+  FORBIDDEN: "🚫",
+  STATISTICS: "📊",
+  USER: "👤",
+  NOTIFICATION: "🔔",
+  MESSAGE: "📩",
+  ROCKET: "🚀",
+  TIME: "⏳",
+  DELETE: "🗑️",
+  NEXT: "➡️",
+  PREV: "⬅️",
+};
