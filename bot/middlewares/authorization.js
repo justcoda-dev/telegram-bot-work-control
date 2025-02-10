@@ -1,6 +1,6 @@
 import { admin } from "../admin/composers/admin.js";
 import { user } from "../user/composers/user.js";
-import { userController } from "../../db/models/User/user.controller.js";
+import { userController } from "../../db/models/user/user.controller.js";
 import { adminController } from "../../db/models/admin/admin.controller.js";
 
 export const authorization = async (ctx, next) => {

@@ -20,8 +20,22 @@ workingDayController.getWorkingDay = async (searchParam) => {
 };
 workingDayController.createWorkingDay = async (workingDayData) => {
   try {
-    const workingDays = await WorkingDay.create(workingDayData);
-    return workingDays;
+    const workingDay = await WorkingDay.create(workingDayData);
+    return workingDay;
+  } catch (error) {
+    console.error(error);
+  }
+};
+workingDayController.findOrCreateWorkingDay = async (
+  searchParam,
+  workingDayData
+) => {
+  try {
+    const workingDay = await WorkingDay.findOrCreate({
+      where: searchParam,
+      defaults: workingDayData,
+    });
+    return workingDay;
   } catch (error) {
     console.error(error);
   }

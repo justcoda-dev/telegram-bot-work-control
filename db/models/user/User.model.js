@@ -12,6 +12,20 @@ export const User = db.define(
       type: DataTypes.BIGINT,
       allowNull: false,
     },
+    paused: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+      allowNull: false,
+    },
+    is_pinged: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+      allowNull: false,
+    },
+    pinged_admin: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,

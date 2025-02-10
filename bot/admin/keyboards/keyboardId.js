@@ -24,5 +24,7 @@ export const KEYBOARD_ACTION = {
     CLOSE: "CLOSE",
     DELETE: "DELETE",
     PING: "PING",
+    PING_ALL: "PING_ALL",
+    REPEAT: "REPEAT",
   },
 };

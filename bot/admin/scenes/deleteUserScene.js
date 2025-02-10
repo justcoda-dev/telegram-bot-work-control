@@ -8,9 +8,19 @@ export const deleteUserScene = new WizardScene(
   KEYBOARD_ID.MAIN.DELETE_USER,
   async (ctx) => {
     try {
-      ctx.deleteMessage();
-      ctx.session.messagesToDelete = [];
-      ctx.session.messagesToDelete.push(
+      if (ctx.session.deleteUserState) {
+        for (const message of ctx.session.deleteUserState.messages) {
+          await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
+        }
+        ctx.session.deleteUserState.messages = [];
+      } else {
+        ctx.session.deleteUserState = {};
+        ctx.session.deleteUserState.messages = [];
+        ctx.session.deleteUserState.messages.push(ctx.message);
+      }
+
+      const state = ctx.session.deleteUserState;
+      state.messages.push(
         await ctx.reply(`Введіть telegram_id користувача ${EMOJI.USER}:`)
       );
       return ctx.wizard.next();
@@ -24,11 +34,12 @@ export const deleteUserScene = new WizardScene(
   },
   async (ctx) => {
     try {
-      ctx.session.messagesToDelete.push(ctx.message);
+      const state = ctx.session.deleteUserState;
+      state.messages.push(ctx.message);
       const telegramId = ctx.message.text;
       if (isNumeric(telegramId)) {
-        ctx.session.telegramId = telegramId;
-        ctx.session.messagesToDelete.push(
+        state.telegramId = telegramId;
+        state.messages.push(
           await ctx.reply(
             `Підтвердіть видалення користувача telegram_id: ${telegramId} ${EMOJI.USER}`,
             submitKeyboard(KEYBOARD_ID.INLINE.DELETE_USER)
@@ -36,10 +47,13 @@ export const deleteUserScene = new WizardScene(
         );
         return ctx.scene.leave();
       } else {
-        await ctx.reply(
-          "telegram_id повинен містити тільки числа, введіть ще раз:"
+        ctx.wizard.back();
+        await ctx.wizard.steps[ctx.wizard.cursor](ctx);
+        state.messages.push(
+          await ctx.reply(
+            "telegram_id повинен містити тільки числа, введіть ще раз."
+          )
         );
-        return ctx.scene.reenter();
       }
     } catch (error) {
       console.log(error);

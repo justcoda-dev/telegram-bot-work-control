@@ -1,14 +1,16 @@
 import { userController } from "../../../db/models/user/user.controller.js";
 import { EMOJI } from "../../static/emoji.js";
+import { loading } from "../../utils/loading.js";
 const submitDeleteUser = async (ctx) => {
   try {
-    const { telegramId: telegram_id } = ctx.session;
+    const { startLoadingMessage, endLoadingMessage } = loading(ctx);
+    const state = ctx.session.deleteUserState;
+    const { telegramId: telegram_id } = state;
+    await startLoadingMessage();
     const deletedUserId = await userController.deleteUser({ telegram_id });
+    await endLoadingMessage();
 
     if (deletedUserId) {
-      await ctx.answerCbQuery(
-        `Користувача ${telegram_id} успішно видалено ${EMOJI.STATUS_TRUE}`
-      );
       await ctx.reply(
         `Користувача ${telegram_id} успішно видалено ${EMOJI.STATUS_TRUE}`
       );
@@ -18,12 +20,12 @@ const submitDeleteUser = async (ctx) => {
       );
     }
 
-    if (ctx.session.messagesToDelete) {
-      for (const message of ctx.session.messagesToDelete) {
-        await ctx.deleteMessage(message.message_id);
+    if (state) {
+      for (const message of state.messages) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
       }
-      ctx.session = {};
     }
+    ctx.session.deleteUserState = null;
   } catch (error) {
     console.log(error);
     await ctx.reply(
@@ -34,16 +36,19 @@ const submitDeleteUser = async (ctx) => {
 
 const cancelDeleteUser = async (ctx) => {
   try {
-    const { telegram_id } = ctx.session;
-    await ctx.answerCbQuery(
-      `Видалення користувача ${telegram_id} скасовано ${EMOJI.STATUS_FALSE}`
+    const state = ctx.session.deleteUserState;
+    const { telegram_id } = state;
+    state.messages.push(
+      await ctx.reply(
+        `Видалення користувача ${telegram_id} скасовано ${EMOJI.STATUS_FALSE}`
+      )
     );
-    if (ctx.session.messagesToDelete) {
-      for (const message of ctx.session.messagesToDelete) {
-        await ctx.deleteMessage(message.message_id);
+    if (ctx.session.deleteUserState) {
+      for (const message of ctx.session.deleteUserState.messages) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
       }
-      ctx.session = {};
     }
+    ctx.session.deleteUserState = null;
   } catch (error) {
     console.log(error);
     await ctx.reply(

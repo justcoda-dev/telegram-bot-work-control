@@ -3,74 +3,86 @@ import { KEYBOARD_ID } from "../keyboards/keyboardId.js";
 import { EMOJI } from "../../static/emoji.js";
 import { isNumeric } from "../../utils/isNumeric.js";
 import { submitKeyboard } from "../keyboards/keyboardInline/submitKeyboard.js";
+import { repeatKeyboard } from "../keyboards/keyboardInline/repeatKeyboard.js";
 
 export const addUserScene = new WizardScene(
   KEYBOARD_ID.MAIN.ADD_USER,
   async (ctx) => {
     try {
-      ctx.deleteMessage();
-      ctx.session.messagesToDelete = [];
-      ctx.session.messagesToDelete.push(
-        await ctx.reply("Введіть telegram_id користувача:")
-      );
-      return ctx.wizard.next();
+      if (ctx.session.addUserState) {
+        for (const message of ctx.session.addUserState.messages) {
+          await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
+        }
+        ctx.session.addUserState.messages = [];
+      } else {
+        ctx.session.addUserState = {};
+        ctx.session.addUserState.messages = [];
+        ctx.session.addUserState.messages.push(ctx.message);
+      }
+      const state = ctx.session.addUserState;
+      state.messages.push(await ctx.reply("Введіть telegram_id користувача:"));
+      ctx.wizard.next();
     } catch (error) {
       console.log(error);
       await ctx.reply(
         `Наразі створення клієнта недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
       );
-      ctx.scene.leave();
+      await ctx.scene.leave();
     }
   },
   async (ctx) => {
     try {
-      ctx.session.messagesToDelete.push(ctx.message);
-      const telegramId = ctx.message.text.toString();
+      const state = ctx.session.addUserState;
+      state.messages.push(ctx.message);
+      const telegramId = ctx.message.text;
       if (isNumeric(telegramId)) {
-        ctx.session.telegramId = telegramId;
-        ctx.session.messagesToDelete.push(
-          await ctx.reply("Введіть ім'я користувача:")
-        );
+        state.telegramId = telegramId;
+        state.messages.push(await ctx.reply("Введіть ім'я користувача:"));
         return ctx.wizard.next();
       } else {
-        await ctx.reply(
-          "telegram_id повинен містити тільки числа, введіть ще раз:"
+        ctx.wizard.back();
+        await ctx.wizard.steps[ctx.wizard.cursor](ctx);
+        state.messages.push(
+          await ctx.reply(
+            "telegram_id повинен містити тільки числа, введіть ще раз."
+          )
         );
-        return ctx.scene.reenter();
       }
     } catch (error) {
       console.log(error);
       await ctx.reply(
         `Наразі створення клієнта недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
       );
-      ctx.scene.leave();
+      await ctx.scene.leave();
     }
   },
   async (ctx) => {
     try {
-      ctx.session.messagesToDelete.push(ctx.message);
+      const state = ctx.session.addUserState;
+      state.messages.push(ctx.message);
       const name = ctx.message.text;
       if (name.length > 2) {
-        ctx.session.name = name;
-        ctx.session.messagesToDelete.push(
+        state.name = name;
+        state.messages.push(
           await ctx.reply(
-            `Підтвердіть створення користувача ${name}, telegram_id: ${ctx.session.telegramId}`,
+            `Підтвердіть створення користувача ${name}, telegram_id: ${state.telegramId}`,
             submitKeyboard(KEYBOARD_ID.INLINE.ADD_USER)
           )
         );
-        return ctx.scene.leave();
+
+        await ctx.scene.leave();
       } else {
         await ctx.reply(
           "Ім'я повинен містити більше 2х символів, введіть ім'я ще раз:"
         );
-        return ctx.scene.reenter();
+        await ctx.scene.leave();
       }
     } catch (error) {
       console.log(error);
       await ctx.reply(
         `Наразі створення клієнта недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
       );
-      ctx.scene.leave();
+      await ctx.scene.leave();
     }
   }
 );

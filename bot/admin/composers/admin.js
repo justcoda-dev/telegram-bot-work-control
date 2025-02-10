@@ -1,5 +1,5 @@
 import { Composer } from "telegraf";
-import { startKeyboard } from "../keyboards/keyboard/startKeyboard.js";
+import { startKeyBoard } from "../keyboards/keyboard/startKeyBoard.js";
 import { Stage } from "telegraf/scenes";
 import { addUserScene } from "../scenes/addUserScene.js";
 import { KEYBOARD_ACTION, KEYBOARD_ID } from "../keyboards/keyboardId.js";
@@ -19,6 +19,8 @@ import { deleteUserScene } from "../scenes/deleteUserScene.js";
 import {
   closeUsersListWithPing,
   nextPageUsersListWithPing,
+  pingAllUsers,
+  pingUser,
   prevPageUsersListWithPing,
   showUsersListWithPing,
 } from "../handlers/usersListWithPingHandlers.js";
@@ -46,7 +48,7 @@ admin.start(async (ctx) => {
   try {
     await ctx.reply(
       `Вітаю!Ви авторизовані як адміністратор telegram_id:${ctx.from.id}.`,
-      startKeyboard
+      startKeyBoard
     );
   } catch (error) {
     console.log(error);
@@ -56,14 +58,12 @@ admin.start(async (ctx) => {
   }
 });
 
-// scenes
+// add user
 admin.hears(
   KEYBOARD_ID.MAIN.ADD_USER,
   async (ctx) => await ctx.scene.enter(KEYBOARD_ID.MAIN.ADD_USER)
 );
 
-// actions
-// add user keyboard
 admin.action(
   `${KEYBOARD_ID.INLINE.ADD_USER}@${KEYBOARD_ACTION.INLINE.SUBMIT}`,
   submitAddUser
@@ -73,6 +73,7 @@ admin.action(
   `${KEYBOARD_ID.INLINE.ADD_USER}@${KEYBOARD_ACTION.INLINE.CANCEL}`,
   cancelAddUser
 );
+admin.action(`${KEYBOARD_ID.INLINE.ADD_USER}@${KEYBOARD_ACTION.INLINE.PREV}`);
 // delete user keyboard
 admin.hears(
   `${KEYBOARD_ID.MAIN.DELETE_USER}`,
@@ -115,3 +116,9 @@ admin.action(
   `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.CLOSE}`,
   closeUsersListWithPing
 );
+admin.action(
+  `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`,
+  pingAllUsers
+);
+
+admin.action(RegExp(`^${KEYBOARD_ACTION.INLINE.PING}@(\\d+)$`), pingUser);

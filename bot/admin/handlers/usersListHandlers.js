@@ -1,4 +1,5 @@
 import { userController } from "../../../db/models/user/user.controller.js";
+import { workingDayController } from "../../../db/models/working_day/workingDay.controller.js";
 import { EMOJI } from "../../static/emoji.js";
 import { loading } from "../../utils/loading.js";
 import { KEYBOARD_ID } from "../keyboards/keyboardId.js";
@@ -8,30 +9,49 @@ const items_per_page = 5;
 const showUsersList = async (ctx) => {
   try {
     const { startLoadingMessage, endLoadingMessage } = loading(ctx);
+    await ctx.deleteMessage();
+    if (ctx.session.usersListState) {
+      for (const message of ctx.session.usersListState.listMessages) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
+      }
+      ctx.session.usersListState.listMessages = [];
+    } else {
+      ctx.session.usersListState = {};
+      ctx.session.usersListState.listMessages = [];
+    }
+
+    const state = ctx.session.usersListState;
+    state.usersPage = 1;
+    const offset = (state.usersPage - 1) * items_per_page;
     await startLoadingMessage();
-    ctx.session.usersPage = 1;
-    const offset = (ctx.session.usersPage - 1) * items_per_page;
     const users = await userController.getAndCountUsers(offset, items_per_page);
     await endLoadingMessage();
-    await ctx.deleteMessage();
-    ctx.session.usersMaxPage = Math.ceil(users.count / items_per_page);
+    const usersWorkingTime = users.rows.map((user) =>
+      workingDayController.getWorkingDay({ user_id: user.dataValues.id })
+    );
+
+    state.usersMaxPage = Math.ceil(users.count / items_per_page);
     if (users.rows.length) {
       const usersList = users.rows
         .map(
           (user, index) =>
-            `<code>${index + 1 + offset}. telegram_id: <b>${
+            `${index + 1 + offset}. telegram_id: <b>${
               user.dataValues.telegram_id
-            }.</b> Ім'я: <b>${user.dataValues.name}.</b></code>`
+            }.</b> Ім'я: <b>${user.dataValues.name}.</b> <b>Присутність</b> ${
+              user.dataValues.is_pinged ? EMOJI.STATUS_TRUE : EMOJI.STATUS_FALSE
+            }`
         )
         .join("\n");
 
-      await ctx.replyWithHTML(
-        `<b>Список користувачів:</b>\n${usersList}\n
-        Сторінка ${ctx.session.usersPage} із ${ctx.session.usersMaxPage}`,
-        navigationKeyboard(KEYBOARD_ID.INLINE.USERS_NAVIGATION)
+      state.listMessages.push(
+        await ctx.replyWithHTML(
+          `<b>Список користувачів:</b>\n${usersList}\n
+        Сторінка ${state.usersPage} із ${state.usersMaxPage}`,
+          navigationKeyboard(KEYBOARD_ID.INLINE.USERS_NAVIGATION)
+        )
       );
     } else {
-      await ctx.reply("Список клієнтів пустий.");
+      state.listMessages.push(await ctx.reply("Список клієнтів пустий."));
     }
   } catch (error) {
     console.error(error);
@@ -42,36 +62,47 @@ const showUsersList = async (ctx) => {
 };
 const nextPageUsersList = async (ctx) => {
   try {
+    const state = ctx.session.usersListState;
+    if (state.listMessages) {
+      for (const message of state.listMessages) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
+        state.listMessages = [];
+      }
+    }
     const { startLoadingMessage, endLoadingMessage } = loading(ctx);
 
-    ctx.session.usersPage =
-      ctx.session.usersPage < ctx.session.usersMaxPage
-        ? ctx.session.usersPage + 1
-        : ctx.session.usersMaxPage;
+    state.usersPage =
+      state.usersPage < state.usersMaxPage
+        ? state.usersPage + 1
+        : state.usersMaxPage;
 
-    const offset = (ctx.session.usersPage - 1) * items_per_page;
+    const offset = (state.usersPage - 1) * items_per_page;
     await startLoadingMessage();
     const users = await userController.getAndCountUsers(offset, items_per_page);
     await endLoadingMessage();
-    ctx.session.usersMaxPage = Math.ceil(users.count / items_per_page);
+    state.usersMaxPage = Math.ceil(users.count / items_per_page);
     if (users.rows.length) {
       const usersList = users.rows
         .map(
           (user, index) =>
-            `${index + 1 + offset}.  id: <b>${
+            `${index + 1 + offset}. telegram_id: <b>${
               user.dataValues.telegram_id
-            }</b> Імя: <b>${user.dataValues.name}</b>.`
+            }.</b> Ім'я: <b>${user.dataValues.name}.</b> <b>Присутність</b> ${
+              user.dataValues.is_pinged ? EMOJI.STATUS_TRUE : EMOJI.STATUS_FALSE
+            }`
         )
         .join("\n");
-      await ctx.deleteMessage();
-      await ctx.replyWithHTML(
-        `<b>Список користувачів:</b>\n
-        ${usersList}\n
-        Сторінка ${ctx.session.usersPage} із ${ctx.session.usersMaxPage}`,
-        navigationKeyboard(KEYBOARD_ID.INLINE.USERS_NAVIGATION)
+
+      state.listMessages.push(
+        await ctx.replyWithHTML(
+          `<b>Список користувачів:</b>\n
+      ${usersList}\n
+      Сторінка ${state.usersPage} із ${state.usersMaxPage}`,
+          navigationKeyboard(KEYBOARD_ID.INLINE.USERS_NAVIGATION)
+        )
       );
     } else {
-      await ctx.reply("Список клієнтів пустий.");
+      state.listMessages(await ctx.reply("Список клієнтів пустий."));
     }
   } catch (error) {
     console.error(error);
@@ -82,33 +113,42 @@ const nextPageUsersList = async (ctx) => {
 };
 const prevPageUsersList = async (ctx) => {
   try {
+    const state = ctx.session.usersListState;
+    if (state.listMessages) {
+      for (const message of state.listMessages) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
+        state.listMessages = [];
+      }
+    }
     const { startLoadingMessage, endLoadingMessage } = loading(ctx);
-
-    ctx.session.usersPage =
-      ctx.session.usersPage > 1 ? ctx.session.usersPage - 1 : 1;
-    const offset = (ctx.session.usersPage - 1) * items_per_page;
+    state.usersPage = state.usersPage > 1 ? state.usersPage - 1 : 1;
+    const offset = (state.usersPage - 1) * items_per_page;
     await startLoadingMessage();
     const users = await userController.getAndCountUsers(offset, items_per_page);
     await endLoadingMessage();
-    ctx.session.usersMaxPage = Math.ceil(users.count / items_per_page);
+    state.usersMaxPage = Math.ceil(users.count / items_per_page);
     if (users.rows.length) {
       const usersList = users.rows
         .map(
           (user, index) =>
             `${index + 1 + offset}. telegram_id: <b>${
               user.dataValues.telegram_id
-            }</b> Імя: <b>${user.dataValues.name}</b>. telegram_`
+            }.</b> Ім'я: <b>${user.dataValues.name}.</b> <b>Присутність</b> ${
+              user.dataValues.is_pinged ? EMOJI.STATUS_TRUE : EMOJI.STATUS_FALSE
+            }`
         )
         .join("\n");
-      await ctx.deleteMessage();
-      await ctx.replyWithHTML(
-        `<b>Список користувачів:</b>\n
+
+      state.listMessages.push(
+        await ctx.replyWithHTML(
+          `<b>Список користувачів:</b>\n
         ${usersList}\n
-        Сторінка ${ctx.session.usersPage} із ${ctx.session.usersMaxPage}`,
-        navigationKeyboard(KEYBOARD_ID.INLINE.USERS_NAVIGATION)
+        Сторінка ${state.usersPage} із ${state.usersMaxPage}`,
+          navigationKeyboard(KEYBOARD_ID.INLINE.USERS_NAVIGATION)
+        )
       );
     } else {
-      await ctx.reply("Список клієнтів пустий.");
+      state.push(await ctx.reply("Список клієнтів пустий."));
     }
   } catch (error) {
     console.error(error);
@@ -120,7 +160,6 @@ const prevPageUsersList = async (ctx) => {
 
 const closeUsersList = async (ctx) => {
   try {
-    await ctx.deleteMessage();
   } catch (error) {
     console.error(error);
     await ctx.reply(

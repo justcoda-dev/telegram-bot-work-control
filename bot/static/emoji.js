@@ -1,5 +1,6 @@
 export const EMOJI = {
   SETTINGS: "⚙️",
+  FINISH: "🏁",
   MENU: "📋",
   HELP: "❓",
   STATUS_TRUE: "✅",
@@ -10,6 +11,7 @@ export const EMOJI = {
   NOTIFICATION: "🔔",
   MESSAGE: "📩",
   ROCKET: "🚀",
+  COFFEE: "☕",
   TIME: "⏳",
   DELETE: "🗑️",
   NEXT: "➡️",

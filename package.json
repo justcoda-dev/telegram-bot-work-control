@@ -19,6 +19,7 @@
     "@sequelize/postgres": "^7.0.0-alpha.44",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "googleapis": "^144.0.0",
     "lodash": "^4.17.21",
     "nodemon": "^3.1.9",
     "telegraf": "^4.16.3"

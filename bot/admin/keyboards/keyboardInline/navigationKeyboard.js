@@ -10,14 +10,14 @@ export const navigationKeyboard = (entity) =>
         `${entity}@${KEYBOARD_ACTION.INLINE.PREV}`
       ),
       Markup.button.callback(
-        `${EMOJI.NEXT} Наступна`,
+        ` Наступна ${EMOJI.NEXT}`,
         `${entity}@${KEYBOARD_ACTION.INLINE.NEXT}`
       ),
     ],
-    [
-      Markup.button.callback(
-        `${EMOJI.STATUS_FALSE} Закрити`,
-        `${entity}@${KEYBOARD_ACTION.INLINE.CLOSE}`
-      ),
-    ],
+    // [
+    //   Markup.button.callback(
+    //     `${EMOJI.STATUS_FALSE} Закрити`,
+    //     `${entity}@${KEYBOARD_ACTION.INLINE.CLOSE}`
+    //   ),
+    // ],
   ]).resize();

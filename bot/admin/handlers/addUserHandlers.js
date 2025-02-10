@@ -3,8 +3,11 @@ import { adminController } from "../../../db/models/admin/admin.controller.js";
 import { EMOJI } from "../../static/emoji.js";
 const submitAddUser = async (ctx) => {
   try {
-    const { name, telegramId: telegram_id } = ctx.session;
-    console.log(telegram_id);
+    const state = ctx.session.addUserState;
+    const { name, telegramId: telegram_id } = state;
+    if (!telegram_id) {
+      return await ctx.reply(`Пройдіть процес створення користувача заново`);
+    }
     const admin = await adminController.getAdmin({ telegram_id: ctx.from.id });
     const [user, created] = await userController.findOrCreate(
       { name, telegram_id, admin_id: admin.dataValues.id },
@@ -12,9 +15,6 @@ const submitAddUser = async (ctx) => {
     );
 
     if (created) {
-      await ctx.answerCbQuery(
-        `Користувача ${name} успішно додано ${EMOJI.STATUS_TRUE}`
-      );
       await ctx.reply(
         `Користувача ${name} успішно додано ${EMOJI.STATUS_TRUE}`
       );
@@ -22,16 +22,13 @@ const submitAddUser = async (ctx) => {
       await ctx.reply(
         `Користувач з telegram_id: ${telegram_id} вже існує під іменем ${user.dataValues.name} ${EMOJI.STATUS_TRUE}`
       );
-      await ctx.answerCbQuery(
-        `Користувач з telegram_id: ${telegram_id} вже існує під іменем ${user.dataValues.name} ${EMOJI.STATUS_TRUE}`
-      );
     }
-    if (ctx.session.messagesToDelete) {
-      for (const message of ctx.session.messagesToDelete) {
-        await ctx.deleteMessage(message.message_id);
+    if (state) {
+      for (const message of state.messages) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
       }
-      ctx.session = {};
     }
+    ctx.session.addUserState = null;
   } catch (error) {
     console.log(error);
     await ctx.reply(
@@ -41,16 +38,17 @@ const submitAddUser = async (ctx) => {
 };
 const cancelAddUser = async (ctx) => {
   try {
-    const { name } = ctx.session;
-    await ctx.answerCbQuery(
-      `Створення користувача ${name} скасовано ${EMOJI.STATUS_FALSE}`
-    );
-    if (ctx.session.messagesToDelete) {
-      for (const message of ctx.session.messagesToDelete) {
-        await ctx.deleteMessage(message.message_id);
+    ctx.answerCbQuery();
+    const state = ctx.session.addUserState;
+
+    if (state) {
+      for (const message of state.messages) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
       }
-      ctx.session = {};
     }
+
+    ctx.session.addUserState = null;
+    return await ctx.scene.leave();
   } catch (error) {
     console.log(error);
     await ctx.reply(
