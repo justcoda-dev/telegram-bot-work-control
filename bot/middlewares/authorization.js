@@ -17,7 +17,7 @@ export const authorization = async (ctx, next) => {
     } else if (is_admin) {
       return admin.middleware()(ctx, next);
     } else {
-      await ctx.reply(MESSAGES.FORBIDDEN);
+      await ctx.reply("Нажаль у вас немає доступа до користування цим ботом");
     }
   } catch (error) {
     console.error(error);
