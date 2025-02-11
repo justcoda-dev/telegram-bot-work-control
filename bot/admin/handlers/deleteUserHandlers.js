@@ -27,7 +27,7 @@ const submitDeleteUser = async (ctx) => {
     }
     ctx.session.deleteUserState = null;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     await ctx.reply(
       `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
@@ -50,10 +50,8 @@ const cancelDeleteUser = async (ctx) => {
     }
     ctx.session.deleteUserState = null;
   } catch (error) {
-    console.log(error);
-    await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
-    );
+    console.error(error);
+    await ctx.reply(`При скасуванні сталася помилка ${EMOJI.FORBIDDEN}.`);
   }
 };
 export { submitDeleteUser, cancelDeleteUser };

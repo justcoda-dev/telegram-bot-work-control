@@ -23,9 +23,9 @@ export const addUserScene = new WizardScene(
       state.messages.push(await ctx.reply("Введіть telegram_id користувача:"));
       ctx.wizard.next();
     } catch (error) {
-      console.log(error);
+      console.error(error);
       await ctx.reply(
-        `Наразі створення клієнта недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+        `Наразі створення користувача недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
       );
       await ctx.scene.leave();
     }
@@ -49,9 +49,9 @@ export const addUserScene = new WizardScene(
         );
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       await ctx.reply(
-        `Наразі створення клієнта недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+        `Наразі створення користувача недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
       );
       await ctx.scene.leave();
     }
@@ -78,9 +78,9 @@ export const addUserScene = new WizardScene(
         await ctx.scene.leave();
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       await ctx.reply(
-        `Наразі створення клієнта недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+        `Наразі створення користувача недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
       );
       await ctx.scene.leave();
     }

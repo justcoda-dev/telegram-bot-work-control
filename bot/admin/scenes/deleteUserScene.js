@@ -25,9 +25,9 @@ export const deleteUserScene = new WizardScene(
       );
       return ctx.wizard.next();
     } catch (error) {
-      console.log(error);
+      console.error(error);
       await ctx.reply(
-        `Наразі створення клієнта недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+        `Наразі видалення користувача недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
       );
       ctx.scene.leave();
     }
@@ -56,9 +56,9 @@ export const deleteUserScene = new WizardScene(
         );
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       await ctx.reply(
-        `Наразі створення клієнта недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+        `Наразі видалення користувача недоступне, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
       );
       ctx.scene.leave();
     }

@@ -9,14 +9,14 @@ const submitPing = async (ctx) => {
     const user = await userController.getUser({ telegram_id: userId });
     user.is_pinged = true;
     await user.save();
-    // скільки адмінів
+
     await ctx.telegram.sendMessage(
       user.dataValues.pinged_admin,
       `${user.dataValues.name}, telegram_id:${user.dataValues.telegram_id} підтвердив присутність ${EMOJI.STATUS_TRUE}`
     );
-    console.log(ctx);
   } catch (error) {
     console.error(error);
+    await ctx.reply(`При підтвердженні сталась помилка ${EMOJI.STATUS_FALSE}`);
   }
 };
 const cancelPing = async (ctx) => {
@@ -33,6 +33,7 @@ const cancelPing = async (ctx) => {
     );
   } catch (error) {
     console.error(error);
+    await ctx.reply(`При скасуванні сталась помилка ${EMOJI.STATUS_FALSE}`);
   }
 };
 

@@ -56,7 +56,7 @@ const showUsersList = async (ctx) => {
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -107,7 +107,7 @@ const nextPageUsersList = async (ctx) => {
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -153,19 +153,9 @@ const prevPageUsersList = async (ctx) => {
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
 
-const closeUsersList = async (ctx) => {
-  try {
-  } catch (error) {
-    console.error(error);
-    await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
-    );
-  }
-};
-
-export { showUsersList, nextPageUsersList, prevPageUsersList, closeUsersList };
+export { showUsersList, nextPageUsersList, prevPageUsersList };

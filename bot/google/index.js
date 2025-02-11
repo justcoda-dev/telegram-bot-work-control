@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { configDotenv } from "dotenv";
 configDotenv();
+
 const auth = new google.auth.GoogleAuth({
   keyFile: process.env.GOOGLE_KEY_FILE_PATH,
   scopes: [
@@ -21,10 +22,13 @@ export async function updateOrCreateSpreadsheetWidthFolder({
 }) {
   try {
     const folderId = await findOrCreateFolder(folderName);
-
-    await setPermissions(folderId, userEmail, "writer");
-    const createdFolderShortCut = await drive.files.create({
-      resource: {
+    await setPermissions({
+      fileId: folderId,
+      userEmail: userEmail,
+      role: "writer",
+    });
+    await drive.files.create({
+      requestBody: {
         name: folderName,
         mimeType: "application/vnd.google-apps.shortcut",
         parents: ["root"],
@@ -35,16 +39,10 @@ export async function updateOrCreateSpreadsheetWidthFolder({
       fields: "id",
     });
 
-    console.log("added shortcut", createdFolderShortCut);
     const sheetId = await findOrCreateSpreadSheet(sheetName, folderId);
-    await setPermissions(sheetId, userEmail, "writer");
     await writeToSheet(sheetId, values);
-
-    console.log(`sheet and folder created`);
-    console.log(`folder: https://drive.google.com/drive/folders/${folderId}`);
-    console.log(`sheet: https://docs.google.com/spreadsheets/d/${sheetId}`);
   } catch (error) {
-    console.error(error.message);
+    console.error(error);
   }
 }
 
@@ -55,19 +53,16 @@ async function findOrCreateFolder(folderName) {
       fields: "files(id, name)",
     });
     if (folders.data.files.length) {
-      console.log("folder found, id", folders.data.files[0].id);
       return folders.data.files[0].id;
     }
     const createdFolder = await drive.files.create({
-      resource: {
+      requestBody: {
         name: folderName,
         mimeType: "application/vnd.google-apps.folder",
         parents: ["root"],
       },
       fields: "id",
     });
-
-    console.log("folder created, id", createdFolder.data.id);
 
     return createdFolder.data.id;
   } catch (error) {
@@ -82,43 +77,50 @@ async function findOrCreateSpreadSheet(sheetName, folderId) {
       fields: "files(id)",
     });
     if (fileRes.data.files.length > 0) {
-      console.log("spreadsheet found, id", fileRes.data.files[0].id);
-      await deleteSpreadsheet(fileRes.data.files[0].id);
+      await deleteFile(fileRes.data.files[0].id);
     }
     const spreadsheet = await sheets.spreadsheets.create({
-      resource: {
-        properties: { title: sheetName },
+      requestBody: {
+        properties: { title: sheetName, timeZone: "Europe/Kiev" },
       },
       fields: "spreadsheetId",
     });
     const sheetId = spreadsheet.data.spreadsheetId;
-    console.log("spreadsheet created, id", sheetId);
+
     await drive.files.update({
       fileId: sheetId,
       addParents: folderId,
       fields: "id",
     });
-    console.log("spreadsheet updated");
+
     return sheetId;
   } catch (error) {
     console.error(error);
   }
 }
 
-async function setPermissions(fileId, userEmail, role) {
+async function setPermissions({ fileId, userEmail, role }) {
   try {
+    const permissionsList = await drive.permissions.list({
+      fileId,
+      fields: "permissions(id, emailAddress, role)",
+    });
+
+    const existingPermission = permissionsList.data.permissions.find(
+      (p) => p.emailAddress === userEmail
+    );
+
+    if (existingPermission) {
+      return;
+    }
     await drive.permissions.create({
-      fileId: fileId,
-      resource: {
+      fileId,
+      requestBody: {
         type: "user",
-        role: role,
+        role,
         emailAddress: userEmail,
       },
     });
-
-    console.log(
-      `premission ${role} is set to fileId${fileId} to email ${userEmail}`
-    );
   } catch (error) {
     console.error(error);
   }
@@ -130,32 +132,20 @@ async function writeToSheet(sheetId, values) {
       spreadsheetId: sheetId,
       range: "Sheet1!A1",
       valueInputOption: "RAW",
-      resource: { values },
+      requestBody: { values },
     });
-    console.log(`sheet has been updated`);
   } catch (error) {
     console.error(error);
   }
 }
 
-async function deleteFolder(folderId) {
-  try {
-    await drive.files.update({
-      fileId: folderId,
-      resource: { trashed: true },
-    });
-    console.log(` Folder moved to trash: ${folderId}`);
-  } catch (error) {
-    console.error("Error moving folder to trash:", error);
-  }
-}
-async function deleteSpreadsheet(spreadsheetId) {
+async function deleteFile(fileId) {
   try {
     await drive.files.delete({
-      fileId: spreadsheetId,
+      fileId,
     });
+    await drive.files.emptyTrash();
 
-    console.log("Spreadsheet deleted successfully");
     return true;
   } catch (error) {
     console.error("Error deleting spreadsheet:", error);

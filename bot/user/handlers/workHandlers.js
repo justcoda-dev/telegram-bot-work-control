@@ -70,7 +70,7 @@ const endWork = async (ctx) => {
       await workingDayPauseController.getWorkingDayPauses({
         working_day_id: workingDay.dataValues.id,
       });
-    console.log(workingDayPauses);
+
     const pausesToSheet = workingDayPauses.map((pause) => {
       return [
         null,
@@ -88,7 +88,7 @@ const endWork = async (ctx) => {
       const endPause = new Date(pause.dataValues.pause_end).getTime();
       return total + (endPause - startPause);
     }, 0);
-    console.log("totalPauseMs", totalPauseMs);
+
     const startWork = new Date(workingDay.dataValues.work_start);
     const diffMs = endWork.getTime() - (startWork.getTime() + totalPauseMs);
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -136,8 +136,6 @@ const endWork = async (ctx) => {
         values: sheetValues,
         folderName: user.dataValues.telegram_id,
       });
-
-      console.log("sheetValues", sheetValues);
     }
   } catch (error) {
     console.error(error);
@@ -164,6 +162,7 @@ const pauseWork = async (ctx) => {
         pause_start: pauseStartDate,
         working_day_id: workingDay.dataValues.id,
       });
+
       await ctx.reply(
         `Ви поставили паузу о ${pauseStartDate} ${EMOJI.COFFEE}`,
         workPausedKeyBoard

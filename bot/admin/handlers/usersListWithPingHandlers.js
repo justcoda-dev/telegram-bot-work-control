@@ -41,13 +41,19 @@ const showUsersListWithPing = async (ctx) => {
             ...users.rows.map((user) => [
               Markup.button.callback(
                 `${user.dataValues.name}, telegram_id:${user.dataValues.telegram_id}`,
-                user.dataValues.telegram_id
+                `${KEYBOARD_ACTION.INLINE.PING}@${user.dataValues.telegram_id}`
               ),
             ]),
             [
               Markup.button.callback(
                 "Вислати всім",
                 `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`
+              ),
+            ],
+            [
+              Markup.button.callback(
+                "Drink Water",
+                `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.DRINK_WATER}`
               ),
             ],
           ])
@@ -66,7 +72,7 @@ const showUsersListWithPing = async (ctx) => {
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -101,13 +107,13 @@ const nextPageUsersListWithPing = async (ctx) => {
             ...users.rows.map((user) => [
               Markup.button.callback(
                 `${user.dataValues.name}, telegram_id:${user.dataValues.telegram_id}`,
-                user.dataValues.telegram_id
+                `${KEYBOARD_ACTION.INLINE.PING}@${user.dataValues.telegram_id}`
               ),
             ]),
             [
               Markup.button.callback(
                 "Вислати всім",
-                `${KEYBOARD_ACTION.INLINE.PING_ALL}`
+                `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`
               ),
             ],
           ])
@@ -126,7 +132,7 @@ const nextPageUsersListWithPing = async (ctx) => {
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -155,13 +161,19 @@ const prevPageUsersListWithPing = async (ctx) => {
             ...users.rows.map((user) => [
               Markup.button.callback(
                 `${user.dataValues.name}, telegram_id:${user.dataValues.telegram_id}`,
-                user.dataValues.telegram_id
+                `${KEYBOARD_ACTION.INLINE.PING}@${user.dataValues.telegram_id}`
               ),
             ]),
             [
               Markup.button.callback(
                 "Вислати всім",
-                `${KEYBOARD_ACTION.INLINE.PING_ALL}`
+                `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`
+              ),
+            ],
+            [
+              Markup.button.callback(
+                "Drink Water",
+                `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`
               ),
             ],
           ])
@@ -180,35 +192,16 @@ const prevPageUsersListWithPing = async (ctx) => {
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
 
-const closeUsersListWithPing = async (ctx) => {
-  try {
-    const state = ctx.session.usersListWithPingState;
-    if (state.pingListMessages) {
-      for (const message of state.pingListMessages) {
-        await ctx.telegram.deleteMessage(ctx.chat.id, message.message_id);
-        state.pingListMessages = [];
-      }
-    } else {
-      console.log(state.pingListMessages);
-    }
-  } catch (error) {
-    console.error(error);
-    await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
-    );
-  }
-};
 const pingUser = async (ctx) => {
   try {
-    const state = ctx.session.usersListWithPingState;
     const userId = ctx.match[1];
     const user = await userController.getUser({ telegram_id: userId });
-    console.log(user);
+
     user.is_pinged = false;
     user.pinged_admin = ctx.from.id;
     await user.save();
@@ -219,27 +212,49 @@ const pingUser = async (ctx) => {
     );
   } catch (error) {
     await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Нажаль не вдалось відправити превірку юзеру ${EMOJI.FORBIDDEN}.`
     );
   }
 };
 const pingAllUsers = async (ctx) => {
   try {
-    const state = ctx.session.usersListWithPingState;
     const users = await userController.getUsers();
-
     const messagesToUsers = users.map(async (user) => {
-      user.is_pinged = false;
-      user.pinged_admin = ctx.from.id;
-      await user.save();
       try {
+        user.is_pinged = false;
+        user.pinged_admin = ctx.from.id;
+        await user.save();
         await ctx.telegram.sendMessage(
           user.dataValues.telegram_id,
           `Підтвердіть що ви на місці`,
           submitPingKeyboard(USER_KEYBOARD_ID.INLINE.PING)
         );
       } catch (error) {
-        console.error("Юзера не знайдено", error);
+        console.error(error);
+        await ctx.reply(
+          `Користувач ${user.dataValues.name} з telegram_id:${user.dataValues.telegram_id} не зареєстрований в телеграм ${EMOJI.STATUS_FALSE}`
+        );
+      }
+      return user;
+    });
+
+    await Promise.all(messagesToUsers);
+  } catch (error) {
+    console.error(error);
+    await ctx.reply(`Помилка при отриманні користувачів ${EMOJI.FORBIDDEN}.`);
+  }
+};
+const pingAllUsersToDrinkWater = async (ctx) => {
+  try {
+    const users = await userController.getUsers();
+    const messagesToUsers = users.map(async (user) => {
+      try {
+        await ctx.telegram.sendMessage(
+          user.dataValues.telegram_id,
+          `Drink water`
+        );
+      } catch (error) {
+        console.error(error);
         await ctx.reply(
           `Користувача ${user.dataValues.name} з telegram_id:${user.dataValues.telegram_id} не зайндено ${EMOJI.STATUS_FALSE}`
         );
@@ -247,7 +262,7 @@ const pingAllUsers = async (ctx) => {
       return user;
     });
 
-    const response = await Promise.all(messagesToUsers);
+    await Promise.all(messagesToUsers);
   } catch (error) {
     console.error(error);
     await ctx.reply(
@@ -259,7 +274,7 @@ export {
   showUsersListWithPing,
   nextPageUsersListWithPing,
   prevPageUsersListWithPing,
-  closeUsersListWithPing,
   pingUser,
   pingAllUsers,
+  pingAllUsersToDrinkWater,
 };

@@ -30,9 +30,9 @@ const submitAddUser = async (ctx) => {
     }
     ctx.session.addUserState = null;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `При створенні користувача сталася помилка, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -50,9 +50,9 @@ const cancelAddUser = async (ctx) => {
     ctx.session.addUserState = null;
     return await ctx.scene.leave();
   } catch (error) {
-    console.log(error);
+    console.error(error);
     await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `При відміні створити користувача, сталася помилка ${EMOJI.FORBIDDEN}.`
     );
   }
 };

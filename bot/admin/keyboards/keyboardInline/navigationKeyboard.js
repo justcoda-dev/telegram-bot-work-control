@@ -14,10 +14,4 @@ export const navigationKeyboard = (entity) =>
         `${entity}@${KEYBOARD_ACTION.INLINE.NEXT}`
       ),
     ],
-    // [
-    //   Markup.button.callback(
-    //     `${EMOJI.STATUS_FALSE} Закрити`,
-    //     `${entity}@${KEYBOARD_ACTION.INLINE.CLOSE}`
-    //   ),
-    // ],
   ]).resize();

@@ -10,37 +10,21 @@ import {
   submitDeleteUser,
 } from "../handlers/deleteUserHandlers.js";
 import {
-  closeUsersList,
   nextPageUsersList,
   prevPageUsersList,
   showUsersList,
 } from "../handlers/usersListHandlers.js";
 import { deleteUserScene } from "../scenes/deleteUserScene.js";
 import {
-  closeUsersListWithPing,
   nextPageUsersListWithPing,
   pingAllUsers,
+  pingAllUsersToDrinkWater,
   pingUser,
   prevPageUsersListWithPing,
   showUsersListWithPing,
 } from "../handlers/usersListWithPingHandlers.js";
-//hears(/^🗑️ Видалити_(\d+)$/)
-//Видалити_31323123
-
-// bot.command("start", (ctx) => {
-//   ctx.reply("Виберіть дію:", Markup.keyboard([
-//     ["🗑️ Видалити_12345"], // ID юзера в назві
-//     ["📋 Інші опції"]
-//   ]).resize());
-// });
-
-// bot.hears(/^🗑️ Видалити_(\d+)$/, async (ctx) => {
-//   const userId = ctx.match[1]; // Витягуємо ID
-//   await ctx.reply(`Видаляю користувача з ID: ${userId}`);
-// });
 
 const stages = new Stage([addUserScene, deleteUserScene]);
-
 export const admin = new Composer();
 admin.use(stages.middleware());
 // commands
@@ -51,7 +35,7 @@ admin.start(async (ctx) => {
       startKeyBoard
     );
   } catch (error) {
-    console.log(error);
+    console.error(error);
     await ctx.reply(
       `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
@@ -98,10 +82,7 @@ admin.action(
   `${KEYBOARD_ID.INLINE.USERS_NAVIGATION}@${KEYBOARD_ACTION.INLINE.PREV}`,
   prevPageUsersList
 );
-admin.action(
-  `${KEYBOARD_ID.INLINE.USERS_NAVIGATION}@${KEYBOARD_ACTION.INLINE.CLOSE}`,
-  closeUsersList
-);
+
 // users list with ping
 admin.hears(`${KEYBOARD_ID.MAIN.USERS_LIST_WITH_PING}`, showUsersListWithPing);
 admin.action(
@@ -112,13 +93,14 @@ admin.action(
   `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PREV}`,
   prevPageUsersListWithPing
 );
-admin.action(
-  `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.CLOSE}`,
-  closeUsersListWithPing
-);
+
 admin.action(
   `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`,
   pingAllUsers
+);
+admin.action(
+  `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.DRINK_WATER}`,
+  pingAllUsersToDrinkWater
 );
 
 admin.action(RegExp(`^${KEYBOARD_ACTION.INLINE.PING}@(\\d+)$`), pingUser);
