@@ -50,13 +50,14 @@ const showUsersList = async (ctx) => {
           navigationKeyboard(KEYBOARD_ID.INLINE.USERS_NAVIGATION)
         )
       );
+      console.log(ctx.session);
     } else {
-      state.listMessages.push(await ctx.reply("Список клієнтів пустий."));
+      state.listMessages.push(await ctx.reply("Список користувачів пустий."));
     }
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список користувачів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -102,12 +103,12 @@ const nextPageUsersList = async (ctx) => {
         )
       );
     } else {
-      state.listMessages(await ctx.reply("Список клієнтів пустий."));
+      state.listMessages(await ctx.reply("Список користувачів пустий."));
     }
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список користувачів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -148,12 +149,12 @@ const prevPageUsersList = async (ctx) => {
         )
       );
     } else {
-      state.push(await ctx.reply("Список клієнтів пустий."));
+      state.push(await ctx.reply("Список користувачів пустий."));
     }
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список користувачів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };

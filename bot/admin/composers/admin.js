@@ -18,7 +18,6 @@ import { deleteUserScene } from "../scenes/deleteUserScene.js";
 import {
   nextPageUsersListWithPing,
   pingAllUsers,
-  pingAllUsersToDrinkWater,
   pingUser,
   prevPageUsersListWithPing,
   showUsersListWithPing,
@@ -97,10 +96,6 @@ admin.action(
 admin.action(
   `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`,
   pingAllUsers
-);
-admin.action(
-  `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.DRINK_WATER}`,
-  pingAllUsersToDrinkWater
 );
 
 admin.action(RegExp(`^${KEYBOARD_ACTION.INLINE.PING}@(\\d+)$`), pingUser);

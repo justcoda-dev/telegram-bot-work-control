@@ -50,12 +50,6 @@ const showUsersListWithPing = async (ctx) => {
                 `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`
               ),
             ],
-            [
-              Markup.button.callback(
-                "Drink Water",
-                `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.DRINK_WATER}`
-              ),
-            ],
           ])
         )
       );
@@ -67,7 +61,9 @@ const showUsersListWithPing = async (ctx) => {
         )
       );
     } else {
-      state.pingListMessages.push(await ctx.reply("Список клієнтів пустий."));
+      state.pingListMessages.push(
+        await ctx.reply("Список користувачів пустий.")
+      );
     }
   } catch (error) {
     console.error(error);
@@ -127,12 +123,14 @@ const nextPageUsersListWithPing = async (ctx) => {
         )
       );
     } else {
-      state.pingListMessages.push(await ctx.reply("Список клієнтів пустий."));
+      state.pingListMessages.push(
+        await ctx.reply("Список користувачів пустий.")
+      );
     }
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список користувачів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -170,12 +168,6 @@ const prevPageUsersListWithPing = async (ctx) => {
                 `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`
               ),
             ],
-            [
-              Markup.button.callback(
-                "Drink Water",
-                `${KEYBOARD_ID.INLINE.USERS_NAVIGATION_WITH_PING}@${KEYBOARD_ACTION.INLINE.PING_ALL}`
-              ),
-            ],
           ])
         )
       );
@@ -187,12 +179,12 @@ const prevPageUsersListWithPing = async (ctx) => {
         )
       );
     } else {
-      state.push(await ctx.reply("Список клієнтів пустий."));
+      state.push(await ctx.reply("Список користувачів пустий."));
     }
   } catch (error) {
     console.error(error);
     await ctx.reply(
-      `Не вдалось отримати список клієнтів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
+      `Не вдалось отримати список користувачів, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -212,7 +204,7 @@ const pingUser = async (ctx) => {
     );
   } catch (error) {
     await ctx.reply(
-      `Нажаль не вдалось відправити превірку юзеру ${EMOJI.FORBIDDEN}.`
+      `Користувач ${user.dataValues.name} в телеграм не зареєстрований ${EMOJI.FORBIDDEN}.`
     );
   }
 };
@@ -244,37 +236,11 @@ const pingAllUsers = async (ctx) => {
     await ctx.reply(`Помилка при отриманні користувачів ${EMOJI.FORBIDDEN}.`);
   }
 };
-const pingAllUsersToDrinkWater = async (ctx) => {
-  try {
-    const users = await userController.getUsers();
-    const messagesToUsers = users.map(async (user) => {
-      try {
-        await ctx.telegram.sendMessage(
-          user.dataValues.telegram_id,
-          `Drink water`
-        );
-      } catch (error) {
-        console.error(error);
-        await ctx.reply(
-          `Користувача ${user.dataValues.name} з telegram_id:${user.dataValues.telegram_id} не зайндено ${EMOJI.STATUS_FALSE}`
-        );
-      }
-      return user;
-    });
 
-    await Promise.all(messagesToUsers);
-  } catch (error) {
-    console.error(error);
-    await ctx.reply(
-      `Наразі бот не доступний, спробуйте пізніше ${EMOJI.FORBIDDEN}.`
-    );
-  }
-};
 export {
   showUsersListWithPing,
   nextPageUsersListWithPing,
   prevPageUsersListWithPing,
   pingUser,
   pingAllUsers,
-  pingAllUsersToDrinkWater,
 };

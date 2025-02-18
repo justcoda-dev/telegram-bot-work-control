@@ -26,6 +26,5 @@ export const KEYBOARD_ACTION = {
     PING: "PING",
     PING_ALL: "PING_ALL",
     REPEAT: "REPEAT",
-    DRINK_WATER: "DRINK_WATER",
   },
 };

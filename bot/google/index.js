@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { configDotenv } from "dotenv";
+
 configDotenv();
 
 const auth = new google.auth.GoogleAuth({
@@ -8,11 +9,13 @@ const auth = new google.auth.GoogleAuth({
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/gmail.send",
   ],
 });
 
 const drive = google.drive({ version: "v3", auth });
 const sheets = google.sheets({ version: "v4", auth });
+const gmail = google.gmail({ version: "v1", auth });
 
 export async function updateOrCreateSpreadsheetWidthFolder({
   userEmail,
@@ -27,7 +30,7 @@ export async function updateOrCreateSpreadsheetWidthFolder({
       userEmail: userEmail,
       role: "writer",
     });
-    await drive.files.create({
+    const createdFolderShortCut = await drive.files.create({
       requestBody: {
         name: folderName,
         mimeType: "application/vnd.google-apps.shortcut",
@@ -40,6 +43,11 @@ export async function updateOrCreateSpreadsheetWidthFolder({
     });
 
     const sheetId = await findOrCreateSpreadSheet(sheetName, folderId);
+    await setPermissions({
+      fileId: sheetId,
+      userEmail: userEmail,
+      role: "writer",
+    });
     await writeToSheet(sheetId, values);
   } catch (error) {
     console.error(error);
@@ -101,18 +109,6 @@ async function findOrCreateSpreadSheet(sheetName, folderId) {
 
 async function setPermissions({ fileId, userEmail, role }) {
   try {
-    const permissionsList = await drive.permissions.list({
-      fileId,
-      fields: "permissions(id, emailAddress, role)",
-    });
-
-    const existingPermission = permissionsList.data.permissions.find(
-      (p) => p.emailAddress === userEmail
-    );
-
-    if (existingPermission) {
-      return;
-    }
     await drive.permissions.create({
       fileId,
       requestBody: {
@@ -152,3 +148,10 @@ async function deleteFile(fileId) {
     return false;
   }
 }
+
+// const list = await drive.files.list();
+// list.data.files.forEach(async (file) => {
+//   await drive.files.delete({ fileId: file.id });
+// });
+// await drive.files.emptyTrash();
+// console.log(await drive.files.list().data);
