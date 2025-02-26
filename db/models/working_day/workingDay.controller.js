@@ -1,9 +1,9 @@
 import { WorkingDay } from "./../relations.js";
 
 export const workingDayController = () => {};
-workingDayController.getWorkingDays = async () => {
+workingDayController.getWorkingDays = async (searchParam) => {
   try {
-    const workingDays = await WorkingDay.findAll();
+    const workingDays = await WorkingDay.findAll({ where: searchParam });
     return workingDays;
   } catch (error) {
     console.error(error);

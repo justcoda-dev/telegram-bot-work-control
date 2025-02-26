@@ -9,13 +9,11 @@ const auth = new google.auth.GoogleAuth({
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/drive",
-    "https://www.googleapis.com/auth/gmail.send",
   ],
 });
 
 const drive = google.drive({ version: "v3", auth });
 const sheets = google.sheets({ version: "v4", auth });
-const gmail = google.gmail({ version: "v1", auth });
 
 export async function updateOrCreateSpreadsheetWidthFolder({
   userEmail,
@@ -25,24 +23,15 @@ export async function updateOrCreateSpreadsheetWidthFolder({
 }) {
   try {
     const folderId = await findOrCreateFolder(folderName);
+
     await setPermissions({
       fileId: folderId,
       userEmail: userEmail,
       role: "writer",
     });
-    const createdFolderShortCut = await drive.files.create({
-      requestBody: {
-        name: folderName,
-        mimeType: "application/vnd.google-apps.shortcut",
-        parents: ["root"],
-        shortcutDetails: {
-          targetId: folderId,
-        },
-      },
-      fields: "id",
-    });
 
     const sheetId = await findOrCreateSpreadSheet(sheetName, folderId);
+
     await setPermissions({
       fileId: sheetId,
       userEmail: userEmail,
@@ -109,7 +98,7 @@ async function findOrCreateSpreadSheet(sheetName, folderId) {
 
 async function setPermissions({ fileId, userEmail, role }) {
   try {
-    await drive.permissions.create({
+    const response = await drive.permissions.create({
       fileId,
       requestBody: {
         type: "user",
@@ -149,9 +138,11 @@ async function deleteFile(fileId) {
   }
 }
 
-// const list = await drive.files.list();
+const list = await drive.files.list();
+console.log(list.data);
+// console.log(list.data);
 // list.data.files.forEach(async (file) => {
 //   await drive.files.delete({ fileId: file.id });
 // });
 // await drive.files.emptyTrash();
-// console.log(await drive.files.list().data);
+// console.log(await drive.files.trash);

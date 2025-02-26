@@ -49,55 +49,104 @@ const startWork = async (ctx) => {
 const endWork = async (ctx) => {
   try {
     await ctx.deleteMessage();
+
+    const kyivTimeISO = (date) =>
+      date
+        ? new Date(date)
+            .toLocaleString("sv-SE", { timeZone: "Europe/Kyiv" })
+            .replace(" ", "T")
+        : null;
+
     const endWork = new Date();
 
     const user = await userController.getUser({ telegram_id: ctx.from.id });
     const sheetName = `${endWork.getDate()}.${
       endWork.getMonth() + 1
     }.${endWork.getFullYear()}`;
+
     const filterDate = sheetName;
+
     const workingDay = await workingDayController.getWorkingDay({
       user_id: user.dataValues.id,
       filter_date: filterDate,
     });
-    const kyivTimeISO = (date = null) =>
-      date &&
-      new Date(date)
-        .toLocaleString("sv-SE", { timeZone: "Europe/Kyiv" })
-        .replace(" ", "T");
 
-    const workingDayPauses =
-      await workingDayPauseController.getWorkingDayPauses({
-        working_day_id: workingDay.dataValues.id,
-      });
+    if (!workingDay) {
+      await ctx.reply("Помилка: Робочий день не знайдено.");
+      return;
+    }
+    workingDay.work_end = endWork;
+    await workingDay.save();
 
-    const pausesToSheet = workingDayPauses.map((pause) => {
-      return [
-        null,
-        null,
-        null,
-        null,
-        kyivTimeISO(pause.dataValues.pause_start),
-        kyivTimeISO(pause.dataValues.pause_end),
-        null,
-      ];
+    const users = await userController.getUsers();
+    const workingDays = await workingDayController.getWorkingDays({
+      filter_date: filterDate,
     });
-    pausesToSheet.shift();
-    const totalPauseMs = workingDayPauses.reduce((total, pause) => {
-      const startPause = new Date(pause.dataValues.pause_start).getTime();
-      const endPause = new Date(pause.dataValues.pause_end).getTime();
-      return total + (endPause - startPause);
-    }, 0);
+    const workingDaysPauses = await Promise.all(
+      workingDays.map(async (workingDay) => {
+        const pauses = await workingDayPauseController.getWorkingDayPauses({
+          working_day_id: workingDay.dataValues.id,
+        });
+        return { userId: workingDay.user_id, pauses };
+      })
+    );
 
-    const startWork = new Date(workingDay.dataValues.work_start);
-    const diffMs = endWork.getTime() - (startWork.getTime() + totalPauseMs);
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const diffSec = Math.floor((diffMs % (1000 * 60)) / 1000);
+    const sheetUsersValues = users
+      .map((user) => {
+        const userWorkingDay = workingDays.find((wd) => {
+          return wd.user_id === user.id;
+        });
 
-    const formattedTime = `${diffHours ? diffHours + " год., " : ""}${
-      diffMins ? diffMins + " хв., " : ""
-    }${diffSec} сек.`;
+        const userPauses =
+          workingDaysPauses.find((wp) => wp.userId === user.id)?.pauses || [];
+
+        const startWorkTime = kyivTimeISO(
+          userWorkingDay?.dataValues?.work_start
+        );
+
+        const endWorkTime = kyivTimeISO(userWorkingDay?.dataValues?.work_end);
+
+        const totalPauseMs = userPauses.reduce((total, pause) => {
+          const startPause = new Date(pause.dataValues.pause_start).getTime();
+          const endPause = new Date(pause.dataValues.pause_end).getTime();
+          return total + (endPause - startPause);
+        }, 0);
+
+        const diffMs =
+          new Date(userWorkingDay?.dataValues?.work_end).getTime() -
+          (new Date(userWorkingDay?.dataValues?.work_start).getTime() +
+            totalPauseMs);
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60)) || 0;
+        const diffMins =
+          Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)) || 0;
+        const diffSec = Math.floor((diffMs % (1000 * 60)) / 1000) || 0;
+        const formattedTime = `${diffHours ? diffHours + " год., " : ""}${
+          diffMins ? diffMins + " хв., " : ""
+        }${diffSec} сек.`;
+
+        const userRow = [
+          user.dataValues.name,
+          user.dataValues.telegram_id,
+          startWorkTime || null,
+          endWorkTime || null,
+          kyivTimeISO(userPauses[0]?.dataValues?.pause_start),
+          kyivTimeISO(userPauses[0]?.dataValues?.pause_end),
+          formattedTime,
+        ];
+
+        const pausesRows = userPauses.map((pause) => [
+          null,
+          null,
+          null,
+          null,
+          kyivTimeISO(pause.dataValues.pause_start),
+          kyivTimeISO(pause.dataValues.pause_end),
+          null,
+        ]);
+        pausesRows.shift();
+        return [userRow, ...pausesRows];
+      })
+      .flat();
 
     const sheetValues = [
       [
@@ -109,36 +158,20 @@ const endWork = async (ctx) => {
         "Кінець паузи",
         "Відпрацьовано годин",
       ],
-      [
-        user.dataValues.name,
-        user.dataValues.telegram_id,
-        kyivTimeISO(startWork),
-        kyivTimeISO(endWork),
-        kyivTimeISO(workingDayPauses[0]?.dataValues?.pause_start) || null,
-        kyivTimeISO(workingDayPauses[0]?.dataValues?.pause_end) || null,
-        formattedTime,
-      ],
-      ...pausesToSheet,
+      ...sheetUsersValues,
     ];
 
-    if (workingDay) {
-      workingDay.work_end = endWork;
-      await workingDay.save();
+    await ctx.reply(`Ви закінчили працювати о ${endWork} ⏳`, startKeyBoard);
 
-      await ctx.reply(
-        `Ви закінчили працювати о ${endWork} ${EMOJI.FINISH}`,
-        startKeyBoard
-      );
-
-      await updateOrCreateSpreadsheetWidthFolder({
-        userEmail: process.env.USER_ACCESS_OPEN_GMAIL,
-        sheetName,
-        values: sheetValues,
-        folderName: user.dataValues.telegram_id,
-      });
-    }
+    await updateOrCreateSpreadsheetWidthFolder({
+      userEmail: process.env.USER_ACCESS_OPEN_GMAIL,
+      sheetName,
+      values: sheetValues,
+      folderName: "Телеграм звіти",
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Помилка у методі endWork:", error);
+    await ctx.reply("Сталася помилка при завершенні роботи.");
   }
 };
 
