@@ -13,29 +13,31 @@ const startWork = async (ctx) => {
   try {
     await ctx.deleteMessage();
     const startWorkDate = new Date();
+    // const startWorkDate = new Date("2025-03-22");
     const filterDate = `${startWorkDate.getDate()}.${
       startWorkDate.getMonth() + 1
     }.${startWorkDate.getFullYear()}`;
+
     const user = await userController.getUser({ telegram_id: ctx.from.id });
-    const [workingDay, created] =
-      await workingDayController.findOrCreateWorkingDay(
-        {
-          filter_date: filterDate,
-          user_id: user.dataValues.id,
-        },
-        {
-          filter_date: filterDate,
-          user_id: user.dataValues.id,
-          work_start: startWorkDate,
-        }
-      );
+    // const user = await userController.getUser({ telegram_id: "5255003920" });
 
-    if (!created) {
+    const workingDay = await workingDayController.getWorkingDay({
+      filter_date: filterDate,
+      user_id: user.id,
+    });
+
+    if (workingDay) {
       workingDay.work_start = startWorkDate;
+      workingDay.work_end = null;
       await workingDay.save();
-
       await workingDayPauseController.deleteWorkingDayPause({
         working_day_id: workingDay.dataValues.id,
+      });
+    } else {
+      await workingDayController.createWorkingDay({
+        user_id: user.id,
+        filter_date: filterDate,
+        work_start: startWorkDate,
       });
     }
     await ctx.reply(
@@ -49,7 +51,6 @@ const startWork = async (ctx) => {
 const endWork = async (ctx) => {
   try {
     await ctx.deleteMessage();
-
     const kyivTimeISO = (date) =>
       date
         ? new Date(date)
@@ -57,9 +58,10 @@ const endWork = async (ctx) => {
             .replace(" ", "T")
         : null;
 
+    // const endWork = new Date("2025-03-22");
     const endWork = new Date();
-
     const user = await userController.getUser({ telegram_id: ctx.from.id });
+    // const user = await userController.getUser({ telegram_id: "5255003920" });
     const sheetName = `${endWork.getDate()}.${
       endWork.getMonth() + 1
     }.${endWork.getFullYear()}`;
@@ -67,27 +69,29 @@ const endWork = async (ctx) => {
     const filterDate = sheetName;
 
     const workingDay = await workingDayController.getWorkingDay({
-      user_id: user.dataValues.id,
+      user_id: user.id,
       filter_date: filterDate,
     });
 
     if (!workingDay) {
       await ctx.reply("Помилка: Робочий день не знайдено.");
-      return;
+      return await ctx.reply("Почніть робочий день знову", startKeyBoard);
     }
     workingDay.work_end = endWork;
     await workingDay.save();
 
     const users = await userController.getUsers();
+
     const workingDays = await workingDayController.getWorkingDays({
       filter_date: filterDate,
     });
+
     const workingDaysPauses = await Promise.all(
       workingDays.map(async (workingDay) => {
         const pauses = await workingDayPauseController.getWorkingDayPauses({
           working_day_id: workingDay.dataValues.id,
         });
-        return { userId: workingDay.user_id, pauses };
+        return { user_id: workingDay.user_id, pauses };
       })
     );
 
@@ -98,7 +102,7 @@ const endWork = async (ctx) => {
         });
 
         const userPauses =
-          workingDaysPauses.find((wp) => wp.userId === user.id)?.pauses || [];
+          workingDaysPauses.find((wp) => wp.user_id === user.id)?.pauses || [];
 
         const startWorkTime = kyivTimeISO(
           userWorkingDay?.dataValues?.work_start
@@ -116,6 +120,7 @@ const endWork = async (ctx) => {
           new Date(userWorkingDay?.dataValues?.work_end).getTime() -
           (new Date(userWorkingDay?.dataValues?.work_start).getTime() +
             totalPauseMs);
+
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60)) || 0;
         const diffMins =
           Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)) || 0;
@@ -240,5 +245,6 @@ const continueWork = async (ctx) => {
     console.error(error);
   }
 };
+//
 
 export { startWork, endWork, pauseWork, continueWork };

@@ -138,8 +138,8 @@ async function deleteFile(fileId) {
   }
 }
 
-const list = await drive.files.list();
-console.log(list.data);
+// const list = await drive.files.list();
+// console.log(list.data);
 // console.log(list.data);
 // list.data.files.forEach(async (file) => {
 //   await drive.files.delete({ fileId: file.id });
